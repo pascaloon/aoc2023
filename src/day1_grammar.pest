@@ -1,0 +1,8 @@
+cubes_count = { ASCII_DIGIT+ }
+cubes_type = { ASCII_ALPHA+ }
+cubes = { cubes_count ~ " " ~ cubes_type }
+set = { (cubes ~ ", ")* ~ cubes }
+sets = { (set ~ "; ")* ~ set }
+game_id = { ASCII_DIGIT+ }
+game = { "Game " ~ game_id ~ ": " ~ sets }
+games = { SOI ~ (game ~ NEWLINE)+ ~ EOI }
