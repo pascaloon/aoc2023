@@ -78,7 +78,7 @@ fn parse_input(content: &str) -> Vec<Game> {
 
 // PART 1 --------------------------------------
 
-pub fn part1_inner(content: String) -> i32 {
+pub fn part1_inner(content: &str) -> i32 {
     let games = parse_input(&content);
     // let contraints: Vec<Cubes> = vec![
     //     Cubes {color: "red", count: 12},
@@ -114,15 +114,43 @@ pub fn part1_inner(content: String) -> i32 {
 }
 
 pub fn part1(content: String) {
-    println!("result: {}", part1_inner(content));
+    println!("result: {}", part1_inner(&content));
 }
 
 
 // PART 2 --------------------------------------
 
 
-pub fn part2(content: String) -> i32 {
-    0
+pub fn part2_inner(content: &str) -> i32 {
+    let games = parse_input(&content);
+    let mut sum = 0;
+    for game in &games {
+        let mut maxs: HashMap<&str, i32> = HashMap::with_capacity(3);
+
+        for set in &game.sets {
+            for cubes in &set.cubes {
+                match maxs.get(cubes.color) {
+                    Some(last) if *last < cubes.count => { maxs.insert(cubes.color, cubes.count); },
+                    None => { maxs.insert(cubes.color, cubes.count); },
+                    _ => {}
+                };
+            }
+        }
+
+        let mut power = 1;
+        for (_, count) in maxs.into_iter() {
+            power *= count;
+        }
+
+        sum += power;
+
+    }
+
+    sum
+}
+
+pub fn part2(content: String) {
+    println!("result: {}", part2_inner(&content));
 }
 
 // TESTS ----------------------------------------
@@ -131,14 +159,20 @@ pub fn part2(content: String) -> i32 {
 mod tests {
     use crate::day2::*;
 
-    #[test]
-    fn part1_sample() {
-        let input = r#"Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+    static SAMPLE: &'static str = r#"Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
 Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
 Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
 Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
 "#;
-        assert_eq!(8, part1_inner(input.into()));
+
+    #[test]
+    fn part1_sample() {
+        assert_eq!(8, part1_inner(SAMPLE));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(2286, part2_inner(SAMPLE));
     }
 }
