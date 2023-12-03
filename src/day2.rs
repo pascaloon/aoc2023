@@ -21,7 +21,7 @@ struct Cubes<'a> {
 }
 
 #[derive(Parser)]
-#[grammar = "./day1_grammar.pest"]
+#[grammar = "./day2_grammar.pest"]
 pub struct Games;
 
 fn parse_game(game: Pair<Rule>) -> Game {
