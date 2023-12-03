@@ -1,6 +1,6 @@
 use std::mem;
 
-// PARSING ---------------------------------------
+// SHARED ---------------------------------------
 struct Map<'a> {
     chars: &'a [u8],
     pub width: i32,
@@ -25,30 +25,32 @@ impl<'a> Map<'a> {
     }
 }
 
-// PART 1 --------------------------------------
 struct CurrentWord {
     pub word: Vec<char>,
-    pub anchored: bool
+    pub mapped_anchors: Vec<(char, i32, i32)>
 }
 
-fn is_anchored(map: &Map, cx: i32, cy: i32) -> bool {
+fn get_anchors(map: &Map, cx: i32, cy: i32) -> Vec<(char, i32, i32)> {
+    let mut anchors = Vec::new();
     for y in (cy-1)..=(cy+1) {
         for x in (cx-1)..=(cx+1) {
             match map.get(x, y) {
                 None | Some('.') => { },
                 Some(d) if d.is_ascii_digit() => { },
                 Some('\n') | Some('\r') => panic!("eeeee"),
-                _ => return true
+                Some(c) => anchors.push((c, x, y))
             }
         }
     }
 
-    false
+    anchors
 }
 
-pub fn part1_inner(content: &str) -> i32 {
-    let map = Map::new(content.as_bytes());
+fn is_anchored(map: &Map, cx: i32, cy: i32) -> bool {
+    get_anchors(map, cx, cy).len() > 0
+}
 
+pub fn map_numbers(map: &Map) -> Vec<CurrentWord> {
     let mut nums = Vec::new();
     for y in 0..map.height {
         let mut current_num: Option<CurrentWord> = None;
@@ -58,12 +60,17 @@ pub fn part1_inner(content: &str) -> i32 {
                     match &mut current_num {
                         Some(w) => {
                             w.word.push(c);
-                            w.anchored = w.anchored || is_anchored(&map, x, y);
+                            let anchors = get_anchors(map, x, y);
+                            for anchor in anchors {
+                                if !w.mapped_anchors.contains(&anchor) {
+                                    w.mapped_anchors.push(anchor);
+                                }
+                            }
                         },
                         None => {
                             let word = vec![c];
-                            let anchored = is_anchored(&map, x, y);
-                            current_num = Some(CurrentWord { word, anchored })
+                            let mapped_anchors = get_anchors(map, x, y);
+                            current_num = Some(CurrentWord { word, mapped_anchors})
                         }
                     }
                 },
@@ -71,7 +78,7 @@ pub fn part1_inner(content: &str) -> i32 {
                     let mut cn: Option<CurrentWord> = None;
                     mem::swap(&mut cn, &mut current_num);
                     match cn {
-                        Some(n) if n.anchored => nums.push(n),
+                        Some(n) => nums.push(n),
                         _ => { }
                     }
                 }
@@ -79,12 +86,23 @@ pub fn part1_inner(content: &str) -> i32 {
         }
 
         match current_num {
-            Some(n) if n.anchored => nums.push(n),
+            Some(n) => nums.push(n),
             _ => { }
         }
     }
 
+    nums
+}
+
+// PART 1 --------------------------------------
+
+pub fn part1_inner(content: &str) -> i32 {
+    let map = Map::new(content.as_bytes());
+
+    let nums = map_numbers(&map);
+
     nums.iter()
+        .filter(|n| n.mapped_anchors.len() > 0)
         .map(|n| n.word.iter().collect::<String>().parse::<i32>().unwrap())
         .sum()
 }
@@ -95,14 +113,52 @@ pub fn part1(content: String) {
 
 // PART 2 --------------------------------------
 
+fn get_gear_parts(nums: &Vec<CurrentWord>, x: i32, y:i32) -> Vec<&CurrentWord> {
+    let mut found= Vec::new();
+
+    for num in nums {
+        for a in &num.mapped_anchors {
+            match a {
+                ('*', xx, yy) if *xx == x && *yy == y => found.push(num),
+                _ => { }
+            }
+        }
+    }
+
+    found
+}
+
 pub fn part2_inner(content: &str) -> i32 {
-    0
+    let map = Map::new(content.as_bytes());
+
+    let nums = map_numbers(&map);
+
+    let mut sum = 0;
+    for y in 0..map.height {
+        for x in 0..map.width {
+            match map.get(x, y) {
+                Some('*') => {
+                    let parts = get_gear_parts(&nums, x, y);
+                    println!("len: {:?}", parts.iter().map(|p|p.word.iter().collect::<String>().parse::<i32>().unwrap()).collect::<Vec<i32>>());
+                    if parts.len() == 2 {
+                        let n1 = parts[0].word.iter().collect::<String>().parse::<i32>().unwrap();
+                        let n2 = parts[1].word.iter().collect::<String>().parse::<i32>().unwrap();
+                        sum += n1 * n2;
+                    }
+                },
+                _ => {}
+            }
+        }
+    }
+
+    sum
+
+
 }
 
 pub fn part2(content: String) {
-    println!("result: {}", part1_inner(&content));
+    println!("result: {}", part2_inner(&content));
 }
-
 
 // TESTS ----------------------------------------
 
@@ -127,8 +183,8 @@ mod tests {
         assert_eq!(4361, part1_inner(SAMPLE));
     }
 
-    // #[test]
-    // fn part2_sample() {
-    //     assert_eq!(2286, part2_inner(SAMPLE));
-    // }
+    #[test]
+    fn part2_sample() {
+        assert_eq!(467835, part2_inner(SAMPLE));
+    }
 }
