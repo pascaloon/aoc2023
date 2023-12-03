@@ -1,6 +1,7 @@
 mod day1;
 mod macros;
 mod day2;
+mod day3;
 
 use std::fs::File;
 use std::io::Read;
@@ -26,7 +27,8 @@ fn get_content(day: u8, data: String) -> String {
 
 make_days_map!(run_day, {
     1 => day1,
-    2 => day2
+    2 => day2,
+    3 => day3
 });
 
 fn main() {
