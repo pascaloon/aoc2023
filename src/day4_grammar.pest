@@ -1,0 +1,5 @@
+num = { ASCII_DIGIT+ }
+winning_num = { ASCII_DIGIT+ }
+card_id = { ASCII_DIGIT+ }
+card = { "Card" ~ " "+ ~ card_id ~ ":" ~ " "+ ~ (winning_num ~ " "+)+ ~ "|" ~ " "+ ~ (num ~ " "*)+}
+cards = { SOI ~ NEWLINE* ~ (card ~ NEWLINE)+ ~ EOI }
