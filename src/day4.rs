@@ -46,14 +46,19 @@ fn parse_card(card: Pair<Rule>) -> Card {
     Card {id: id.unwrap(), winning_nums, nums}
 }
 
+// SHARED --------------------------------------
+
+fn count_winning_nums(card: &Card) -> u32 {
+    card.nums.iter()
+        .filter(|num| card.winning_nums.contains(num))
+        .count() as u32
+}
+
 
 // PART 1 --------------------------------------
-pub fn part1_inner(content: &str) -> i32 {
+fn part1_inner(content: &str) -> i32 {
     parse(content).iter()
-        .map(|card|
-            card.nums.iter()
-                .filter(|num| card.winning_nums.contains(num))
-                .count() as u32)
+        .map(count_winning_nums)
         .map(|w| match w { 0 => 0, _ => 2i32.pow(w-1)})
         .sum()
 }
@@ -65,12 +70,31 @@ pub fn part1(content: String) {
 // PART 2 --------------------------------------
 
 
-pub fn part2_inner(content: &str) -> i32 {
-    0
+fn part2_inner(content: &str) -> i32 {
+    let cards = parse(content);
+    let mut queue: Vec<usize> = (0..cards.len()).collect();
+    queue.sort();
+
+    let mut qi = 0usize;
+    while qi < queue.len() {
+        let card_index= queue[qi];
+        let card = &cards[card_index];
+        let winning_nums = count_winning_nums(card) as usize;
+        for wi in 0..winning_nums {
+            let next_card_index = card_index + wi + 1usize;
+            if next_card_index < cards.len() {
+                queue.insert(qi + wi + 1, next_card_index);
+            }
+        }
+
+        qi += 1;
+    }
+
+    queue.len() as i32
 }
 
 pub fn part2(content: String) {
-    part2_inner(&content);
+    println!("{0}", part2_inner(&content));
 }
 
 
@@ -96,6 +120,6 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
 
     #[test]
     fn part2_sample() {
-        // assert_eq!(30, part2_inner(SAMPLE));
+        assert_eq!(30, part2_inner(SAMPLE));
     }
 }
