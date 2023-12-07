@@ -1,0 +1,11 @@
+source_range_start = { ASCII_DIGIT+ }
+target_range_start = { ASCII_DIGIT+ }
+range_length = { ASCII_DIGIT+ }
+category_ids_map = { target_range_start ~ " " ~ source_range_start ~ " " ~ range_length }
+
+source_category_name = { ASCII_ALPHA+ }
+target_category_name = { ASCII_ALPHA+ }
+category = { source_category_name ~ "-to-" ~ target_category_name ~ " map:" ~ (NEWLINE ~ category_ids_map)+ }
+
+seed_id = { ASCII_DIGIT+ }
+file = { SOI ~ NEWLINE* ~ "seeds:" ~ " "+ ~ (seed_id ~ " "*)+ ~ (NEWLINE+ ~ category)+ ~ NEWLINE* ~ EOI }
