@@ -1,13 +1,13 @@
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
+use rayon::prelude::*;
 
 // PARSING ---------------------------------------
 #[derive(Parser)]
 #[grammar = "./day5_grammar.pest"]
-pub struct File;
+pub struct InputFile;
 
 #[derive(Debug)]
 struct IdMap {
@@ -30,7 +30,7 @@ struct Input<'a> {
 }
 
 fn parse(content: &str) -> Input {
-    let file = File::parse(Rule::file, &content)
+    let file = InputFile::parse(Rule::file, &content)
         .expect("couldn't parse content!")
         .next().unwrap();
 
@@ -92,28 +92,30 @@ fn parse_rule_as_u64(r: Pair<Rule>) -> u64 {
 
 // SHARED --------------------------------------
 
-// PART 1 --------------------------------------
-
-
 fn crawl_to_location(init_id: u64, input: &Input) -> u64 {
     const INIT_CATEGORY: &str = "seed";
     const END_CATEGORY: &str = "location";
 
     let mut id = init_id;
+
     let mut cat_name = INIT_CATEGORY;
-    while cat_name.cmp(END_CATEGORY) != Ordering::Equal {
+    while !cat_name.eq(END_CATEGORY) {
         let cat_map: &CategoryMap = input.maps.get(*input.categories.get(cat_name).unwrap()).unwrap();
         cat_name = cat_map.target_category_name;
         for range in &cat_map.maps {
-            if range.source_range_start <= id && id <= (range.source_range_start + range.range_length) {
+            if range.source_range_start <= id && id < (range.source_range_start + range.range_length) {
                 id = range.target_range_start + (id - range.source_range_start);
                 break;
             }
         }
     }
 
+    // println!("{init_id} -> {id}");
+
     id
 }
+
+// PART 1 --------------------------------------
 
 fn part1_inner(content: &str) -> u64 {
     let input = parse(content);
@@ -128,13 +130,42 @@ pub fn part1(content: String) {
 
 // PART 2 --------------------------------------
 
-
 fn part2_inner(content: &str) -> u64 {
-    0
+    let input = parse(content);
+    println!("{:?}", input);
+    assert_eq!(input.seeds.len() % 2, 0);
+
+    let mut locations = Vec::with_capacity(input.seeds.len() / 2);
+    let mut i = 0;
+    // println!("{:?}", input.seeds);
+
+    while i < input.seeds.len() {
+        let start = *input.seeds.get(i).unwrap();
+        let count = *input.seeds.get(i + 1).unwrap();
+        let end = start + count;
+        println!("seed pair: ({}, {})", start, count);
+
+        let min = (start..end)
+            .into_par_iter()
+            .map(|id| crawl_to_location(id, &input))
+            .min()
+            .unwrap();
+
+        locations.push(min);
+
+        i += 2;
+        println!("part {}/{} done, min: {}", i/2, input.seeds.len()/2, min);
+    }
+
+    locations.into_iter()
+        .min()
+        .unwrap()
 }
 
+
+// BAD ANSWER - TOO HIGH : 1240036 (1240036)
 pub fn part2(content: String) {
-    println!("{0}", part2_inner(&content));
+    println!("Final Result: {}", part2_inner(&content));
 }
 
 
@@ -142,7 +173,9 @@ pub fn part2(content: String) {
 
 #[cfg(test)]
 mod tests {
-    use crate::day5::*;
+    use std::fs::File;
+    use std::io::Read;
+use crate::day5::*;
 
     static SAMPLE: &'static str = r#"
 seeds: 79 14 55 13
@@ -185,8 +218,62 @@ humidity-to-location map:
         assert_eq!(35, part1_inner(SAMPLE));
     }
 
+
+    fn load_input_file() -> String {
+        let mut file = File::open("C:\\Projects\\aoc2023\\data\\day5.txt").unwrap();
+        let mut s = String::new();
+        file.read_to_string(&mut s).unwrap();
+        s
+    }
+    #[test]
+    fn part2_pest_order() {
+        for _ in 0..100 {
+            let content = load_input_file();
+            let r: Vec<u64> = content
+                .replace("\r\n", "\n")
+                .split('\n')
+                .next().unwrap()
+                .replace("seeds: ", "")
+                .split(' ')
+                .map(|c| c.parse().unwrap())
+                .collect();
+
+            let input = parse(&content);
+            assert_eq!(r, input.seeds);
+        }
+
+    }
+
+    #[test]
+    fn part2_no_overlap() {
+        let content = load_input_file();
+        let input = parse(&content);
+        assert_eq!(0, input.seeds.len() % 2);
+
+        for i in (0..input.seeds.len()).step_by(2) {
+            let start = input.seeds[i];
+            let range = input.seeds[i+1];
+            let end = start + range;
+
+            for j in (0..input.seeds.len()).step_by(2) {
+                if i == j { continue; }
+                let start2 = input.seeds[j];
+                let range2 = input.seeds[j+1];
+                let end2 = start2 + range2;
+                assert!(
+                    (start < start2 && end < start2) ||
+                    (start > end2 && end > end2)
+                );
+            }
+        }
+
+
+
+    }
+
+
     #[test]
     fn part2_sample() {
-        // assert_eq!(30, part2_inner(SAMPLE));
+        assert_eq!(46, part2_inner(SAMPLE));
     }
 }

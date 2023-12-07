@@ -9,7 +9,7 @@ pub struct Cards;
 
 #[derive(Debug)]
 struct Card {
-    id: i32,
+    _id: i32,
     winning_nums: Vec<i32>,
     nums: Vec<i32>
 }
@@ -43,7 +43,7 @@ fn parse_card(card: Pair<Rule>) -> Card {
         }
     }
 
-    Card {id: id.unwrap(), winning_nums, nums}
+    Card {_id: id.unwrap(), winning_nums, nums}
 }
 
 // SHARED --------------------------------------

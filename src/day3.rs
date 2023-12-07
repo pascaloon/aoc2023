@@ -46,11 +46,7 @@ fn get_anchors(map: &Map, cx: i32, cy: i32) -> Vec<(char, i32, i32)> {
     anchors
 }
 
-fn is_anchored(map: &Map, cx: i32, cy: i32) -> bool {
-    get_anchors(map, cx, cy).len() > 0
-}
-
-pub fn map_numbers(map: &Map) -> Vec<CurrentWord> {
+fn map_numbers(map: &Map) -> Vec<CurrentWord> {
     let mut nums = Vec::new();
     for y in 0..map.height {
         let mut current_num: Option<CurrentWord> = None;
@@ -96,7 +92,7 @@ pub fn map_numbers(map: &Map) -> Vec<CurrentWord> {
 
 // PART 1 --------------------------------------
 
-pub fn part1_inner(content: &str) -> i32 {
+fn part1_inner(content: &str) -> i32 {
     let map = Map::new(content.as_bytes());
 
     let nums = map_numbers(&map);
@@ -128,7 +124,7 @@ fn get_gear_parts(nums: &Vec<CurrentWord>, x: i32, y:i32) -> Vec<&CurrentWord> {
     found
 }
 
-pub fn part2_inner(content: &str) -> i32 {
+fn part2_inner(content: &str) -> i32 {
     let map = Map::new(content.as_bytes());
 
     let nums = map_numbers(&map);
