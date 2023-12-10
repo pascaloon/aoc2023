@@ -6,7 +6,7 @@ struct Race {
     record_distance: u64
 }
 
-fn parse(content: &str) -> Vec<Race> {
+fn parse_separate(content: &str) -> Vec<Race> {
     let clean_line = content.trim().replace("\r\n", "\n");
     let lines: Vec<&str> = clean_line.split('\n').collect();
     assert_eq!(2, lines.len());
@@ -28,6 +28,24 @@ fn parse(content: &str) -> Vec<Race> {
 
 }
 
+
+fn parse_one_race(content: &str) -> Race {
+    let clean_line = content.trim().replace("\r\n", "\n");
+    let lines: Vec<&str> = clean_line.split('\n').collect();
+    assert_eq!(2, lines.len());
+    fn parse_line(line: &str) -> u64 {
+        let s = line.split(" ")
+            .skip(1)
+            .filter(|s| s.len() > 0)
+            .collect::<Vec<&str>>()
+            .join("");
+        s.parse().unwrap()
+    }
+
+    let input: Vec<u64> = lines.iter().map(|s| parse_line(s)).collect();
+    Race { time: input[0], record_distance: input[1] }
+}
+
 // PART 1 --------------------------------------
 
 
@@ -46,7 +64,7 @@ fn count_race_winning_states(race: &Race) -> u64 {
 }
 
 fn part1_inner(content: &str) -> u64 {
-    let races = parse(content);
+    let races = parse_separate(content);
     println!("{:?}", races);
     races.iter()
         .fold(1, |acc, race| acc * count_race_winning_states(race))
@@ -60,7 +78,9 @@ pub fn part1(content: String) {
 // PART 2 --------------------------------------
 
 fn part2_inner(content: &str) -> u64 {
-    0
+    let race = parse_one_race(content);
+    println!("{:?}", race);
+    count_race_winning_states(&race)
 }
 
 pub fn part2(content: String) {
@@ -80,5 +100,10 @@ Distance:  9  40  200
     #[test]
     fn part1_sample() {
         assert_eq!(4 * 8 * 9, part1_inner(SAMPLE));
+    }
+
+    #[test]
+    fn part2_sample() {
+        assert_eq!(71503, part2_inner(SAMPLE));
     }
 }
