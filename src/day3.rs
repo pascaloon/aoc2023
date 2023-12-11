@@ -135,7 +135,6 @@ fn part2_inner(content: &str) -> i32 {
             match map.get(x, y) {
                 Some('*') => {
                     let parts = get_gear_parts(&nums, x, y);
-                    println!("len: {:?}", parts.iter().map(|p|p.word.iter().collect::<String>().parse::<i32>().unwrap()).collect::<Vec<i32>>());
                     if parts.len() == 2 {
                         let n1 = parts[0].word.iter().collect::<String>().parse::<i32>().unwrap();
                         let n2 = parts[1].word.iter().collect::<String>().parse::<i32>().unwrap();

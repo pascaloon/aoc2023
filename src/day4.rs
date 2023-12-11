@@ -64,7 +64,7 @@ fn part1_inner(content: &str) -> i32 {
 }
 
 pub fn part1(content: String) {
-    println!("{0}", part1_inner(&content));
+    println!("result: {}", part1_inner(&content));
 }
 
 // PART 2 --------------------------------------
@@ -94,7 +94,7 @@ fn part2_inner(content: &str) -> i32 {
 }
 
 pub fn part2(content: String) {
-    println!("{0}", part2_inner(&content));
+    println!("result: {}", part2_inner(&content));
 }
 
 

@@ -125,14 +125,13 @@ fn part1_inner(content: &str) -> u64 {
 }
 
 pub fn part1(content: String) {
-    println!("{}", part1_inner(&content));
+    println!("result: {}", part1_inner(&content));
 }
 
 // PART 2 --------------------------------------
 
 fn part2_inner(content: &str) -> u64 {
     let input = parse(content);
-    println!("{:?}", input);
     assert_eq!(input.seeds.len() % 2, 0);
 
     let mut locations = Vec::with_capacity(input.seeds.len() / 2);
@@ -143,7 +142,6 @@ fn part2_inner(content: &str) -> u64 {
         let start = *input.seeds.get(i).unwrap();
         let count = *input.seeds.get(i + 1).unwrap();
         let end = start + count;
-        println!("seed pair: ({}, {})", start, count);
 
         let min = (start..end)
             .into_par_iter()
@@ -154,7 +152,6 @@ fn part2_inner(content: &str) -> u64 {
         locations.push(min);
 
         i += 2;
-        println!("part {}/{} done, min: {}", i/2, input.seeds.len()/2, min);
     }
 
     locations.into_iter()
@@ -162,10 +159,8 @@ fn part2_inner(content: &str) -> u64 {
         .unwrap()
 }
 
-
-// BAD ANSWER - TOO HIGH : 1240036 (1240036)
 pub fn part2(content: String) {
-    println!("Final Result: {}", part2_inner(&content));
+    println!("result: {}", part2_inner(&content));
 }
 
 

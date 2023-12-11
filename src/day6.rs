@@ -65,26 +65,24 @@ fn count_race_winning_states(race: &Race) -> u64 {
 
 fn part1_inner(content: &str) -> u64 {
     let races = parse_separate(content);
-    println!("{:?}", races);
     races.iter()
         .fold(1, |acc, race| acc * count_race_winning_states(race))
 }
 
 
 pub fn part1(content: String) {
-    println!("{}", part1_inner(&content));
+    println!("result: {}", part1_inner(&content));
 }
 
 // PART 2 --------------------------------------
 
 fn part2_inner(content: &str) -> u64 {
     let race = parse_one_race(content);
-    println!("{:?}", race);
     count_race_winning_states(&race)
 }
 
 pub fn part2(content: String) {
-    println!("Final Result: {}", part2_inner(&content));
+    println!("result: {}", part2_inner(&content));
 }
 
 

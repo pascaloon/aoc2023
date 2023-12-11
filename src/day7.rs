@@ -105,7 +105,7 @@ fn part1_inner(content: &str) -> u64 {
 }
 
 pub fn part1(content: String) {
-    println!("{}", part1_inner(&content));
+    println!("result: {}", part1_inner(&content));
 }
 
 // PART 2 --------------------------------------
@@ -157,7 +157,7 @@ fn part2_inner(content: &str) -> u64 {
 }
 
 pub fn part2(content: String) {
-    println!("{}", part2_inner(&content));
+    println!("result: {}", part2_inner(&content));
 }
 
 
