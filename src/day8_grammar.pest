@@ -1,0 +1,6 @@
+id = { ASCII_ALPHA+ }
+left = { "L" }
+right = { "R" }
+directions = { (left|right)+ }
+node_map = { id ~ " "* ~ "=" ~ " "* ~ "(" ~ id ~ "," ~ " "* ~ id ~ ")" }
+input = { NEWLINE* ~ directions ~ NEWLINE+  ~ (node_map ~ NEWLINE)+ ~ NEWLINE*  }

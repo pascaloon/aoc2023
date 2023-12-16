@@ -6,6 +6,7 @@ mod day4;
 mod day5;
 mod day6;
 mod day7;
+mod day8;
 
 use std::fs::File;
 use std::io::Read;
@@ -36,7 +37,8 @@ make_days_map!(run_day, {
     4 => day4,
     5 => day5,
     6 => day6,
-    7 => day7
+    7 => day7,
+    8 => day8
 });
 
 fn main() {
