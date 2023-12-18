@@ -39,8 +39,6 @@ fn find_next(history: &Vec<i64>) -> i64 {
 
 fn part1_inner(content: &str) -> i64 {
     let histories = parse(content);
-    let tot: usize = histories.iter().map(|v|v.len()).sum();
-    println!("numbers count: {tot}");
     histories.iter().map(find_next).sum()
 }
 
@@ -50,8 +48,33 @@ pub fn part1(content: String) {
 
 // PART 2 --------------------------------------
 
+fn find_previous(history: &Vec<i64>) -> i64 {
+    let mut derivatives = Vec::new();
+    derivatives.push(history.clone());
+
+    while derivatives.last().unwrap().iter().any(|n| *n != 0i64){
+        let last = derivatives.last().unwrap();
+        let mut deltas = Vec::with_capacity(last.len()-1);
+        for i in 1..last.len() {
+            let delta = last[i] - last[i -1];
+            deltas.push(delta);
+        }
+        derivatives.push(deltas);
+    }
+
+    derivatives.last_mut().unwrap().insert(0, 0i64);
+    for i in (0..(derivatives.len()-1)).rev() {
+        let delta = *derivatives[i + 1].first().unwrap();
+        let last_num = *derivatives[i].first().unwrap();
+        derivatives[i].insert(0, last_num - delta);
+    }
+
+    *derivatives.first().unwrap().first().unwrap()
+}
+
 pub fn part2_inner(content: &str) -> i64 {
-    0
+    let histories = parse(content);
+    histories.iter().map(find_previous).sum()
 }
 
 pub fn part2(content: String) {
@@ -90,5 +113,25 @@ mod tests {
     #[test]
     fn part1_sample_all() {
         assert_eq!(114, part1_inner(SAMPLE_ALL));
+    }
+
+    #[test]
+    fn part2_sample1() {
+        assert_eq!(-3, part2_inner(SAMPLE_1));
+    }
+
+    #[test]
+    fn part2_sample2() {
+        assert_eq!(0, part2_inner(SAMPLE_2));
+    }
+
+    #[test]
+    fn part2_sample3() {
+        assert_eq!(5, part2_inner(SAMPLE_3));
+    }
+
+    #[test]
+    fn part2_sample_all() {
+        assert_eq!(2, part2_inner(SAMPLE_ALL));
     }
 }
