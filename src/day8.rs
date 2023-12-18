@@ -9,7 +9,7 @@ use pest_derive::Parser;
 #[grammar = "./day8_grammar.pest"]
 pub struct InputFile;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 enum Dir {
     Left,
     Right
@@ -107,9 +107,160 @@ pub fn part1(content: String) {
 
 // PART 2 --------------------------------------
 
+#[derive(Clone, Debug)]
+enum PathFunction {
+    Const(u64),
+    Linear(u64, u64),
+    Any(Vec<PathFunction>)
+}
+
+impl PathFunction {
+    pub fn len(&self) -> u64 {
+        match &self {
+            PathFunction::Const(i) => {*i}
+            PathFunction::Linear(s, l) => {s + l},
+            PathFunction::Any(funcs) => {
+                funcs.iter().map(|f| f.len()).max().unwrap()
+            }
+        }
+    }
+    pub fn as_linear(&self) -> (u64, u64) {
+        match &self {
+            PathFunction::Linear(x, y) => (*x, *y),
+            _ => panic!("..."),
+        }
+    }
+
+    pub fn get_biggest(&self) -> &PathFunction {
+        match &self {
+            PathFunction::Const(_) => panic!("..."),
+            PathFunction::Linear(_, _)  => &self,
+            PathFunction::Any(funcs) => funcs.iter().max_by(|f1, f2| f1.len().cmp(&f2.len())).unwrap()
+        }
+    }
+}
 
 fn part2_inner(content: &str) -> u64 {
-    0
+    let input = parse(content);
+    const START_NODE: &'static str = "A";
+    const END_NODE: &'static str = "Z";
+
+    let lanes: Vec<&str> = input.nodes_map.keys()
+        .filter(|k| k.ends_with(START_NODE))
+        .cloned()
+        .collect();
+
+    let mut functions: Vec<PathFunction> = Vec::with_capacity(lanes.len());
+    for lane in &lanes {
+        let mut dir_idx = 0usize;
+        let mut current_node = *lane;
+        let mut path: Vec<(&str, usize)> = Vec::new();
+        while !path.contains(&(current_node, dir_idx)) {
+            path.push((current_node, dir_idx));
+            let choices = input.nodes_map.get(current_node).expect("couldn't find node");
+            let choice = dir_to_index(input.directions[dir_idx]);
+            current_node = choices[choice];
+
+            dir_idx += 1;
+            if dir_idx >= input.directions.len() {
+                dir_idx = 0;
+            }
+
+        }
+
+        // println!("Path: {:?}", path);
+        assert!(path.iter().any(|(p, _)| p.ends_with(END_NODE)));
+
+
+        // Extract "functions" / "equations" out of loops / lanes
+        // 1. No loop
+        // 2. No Z
+        // 3. N Z
+
+        // 1 2 3 Z1 4 Z2 / 3 Z1 4 Z2 / 3 Z1 4 Z2
+        // Offset: 1 2
+        // Loop: 3 Z 4 Z
+        // fz1(n) = Offset(lane_begin) + Offset(loop_begin) + loop_length * (n-1)
+        // fz1(n) = loop_start + (z1_pos - loop_start) + loop_length * (n-1)
+            // where n >= 1
+        // fz1(1) = Offset + |3 Z1| = 2 + 2 = 4
+        // fz1(2) = Offset + |3 Z1 4 Z2 3 Z1| = 2 + 6 = 8
+        // fz1(3) = Offset + |3 Z1 4 Z2 3 Z1 4 Z2 3 Z1| = 2 + 10 = 12
+
+        let loop_begin = path.iter().position(|x| x.eq(&(current_node, dir_idx))).unwrap();
+        let loop_size = path.len() - loop_begin;
+
+        let mut local_functions: Vec<PathFunction> = Vec::with_capacity(lanes.len());
+
+        for (i, (n, _)) in path.iter().enumerate() {
+            if n.ends_with(END_NODE) {
+                if i < loop_begin {
+                    local_functions.push(PathFunction::Const(i as u64))
+                } else {
+                    local_functions.push(PathFunction::Linear(i as u64, loop_size as u64))
+                }
+            }
+        }
+
+        if local_functions.len() > 1 {
+            functions.push(PathFunction::Any(local_functions));
+        } else if local_functions.len() == 1 {
+            functions.push(local_functions[0].clone());
+        }
+
+    }
+
+    solve_functions(&functions)
+}
+
+fn is_const(f: &&PathFunction) -> bool {
+    match f {
+        PathFunction::Const(_) => true,
+        _ => false
+    }
+}
+fn solve_functions(functions: &Vec<PathFunction>) -> u64 {
+    let mut functions = functions.clone();
+
+    // sort from biggest loop to smallest
+    functions.sort_by(|a, b| b.len().cmp(&a.len()));
+
+    // hope no constant fn
+    assert_eq!(0, functions.iter().filter(is_const).count());
+
+    let mut mult = 0;
+    let mut done = false;
+    let (biggest_loop_start, biggest_loop_len) = functions[0].get_biggest().as_linear();
+
+    while !done {
+        let target = biggest_loop_start + (mult * biggest_loop_len);
+        done = true;
+        for func in functions.iter().skip(1).map(|f| f) {
+            done = solve_function(target, func);
+            if !done {
+                mult += 1;
+                break;
+            }
+        }
+    }
+
+    biggest_loop_start + (mult * biggest_loop_len)
+
+}
+
+fn solve_function(target: u64, func: &PathFunction) -> bool {
+    match func {
+        PathFunction::Const(_) => {
+            panic!("Not supported for now!");
+        }
+        PathFunction::Linear(start, len) => {
+            let m = target - start;
+            m % len == 0
+        }
+        PathFunction::Any(funcs) => {
+            funcs.iter().any(|f| solve_function(target, f))
+        }
+    }
 }
 
 pub fn part2(content: String) {
@@ -149,6 +300,23 @@ ZZZ = (ZZZ, ZZZ)
     #[test]
     fn part1_sample2() {
         assert_eq!(6, part1_inner(SAMPLE_2));
+    }
+
+    static SAMPLE_3: &'static str = r#"
+LR
+
+11A = (11B, XXX)
+11B = (XXX, 11Z)
+11Z = (11B, XXX)
+22A = (22B, XXX)
+22B = (22C, 22C)
+22C = (22Z, 22Z)
+22Z = (22B, 22B)
+XXX = (XXX, XXX)"#;
+
+    #[test]
+    fn part2_sample3() {
+        assert_eq!(6, part2_inner(SAMPLE_3));
     }
 
     // #[test]
