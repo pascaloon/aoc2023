@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 
 #[derive(PartialEq, Debug)]
 enum Tile {
@@ -284,79 +283,140 @@ pub fn part1(content: String) {
 
 // PART 2 --------------------------------------
 
-pub fn part2_inner(content: &str) -> i64 {
-    let map = parse(content);
-    let loop_nodes: HashSet<usize> = HashSet::from_iter(build_loop(&map).into_iter());
-
-    // row checks
-    let mut horizontal_checks: HashSet<usize> = HashSet::new();
-    for y in 0..map.height {
-        let mut in_loop = false;
-        for x in 0..map.width {
-            let tile = map.get_index(x, y).unwrap();
-            match loop_nodes.get(&tile) {
-                Some(_) => {
-                    in_loop = !in_loop;
-                }
-                None if in_loop  => {
-                    horizontal_checks.insert(tile);
-                }
-                _ => {}
-            };
-
-        }
+fn get_right_hand_vec((x1, y1): (i32, i32), (x2, y2): (i32, i32)) -> (i32, i32) {
+    let dv = (x2 - x1, y2 - y1);
+    match dv {
+        (-1, 0) => (0, -1),
+        (1, 0) => (0, 1),
+        (0, -1) => (1, 0),
+        (0, 1) => (-1, 0),
+        _ => panic!("impossible vec {:?}", dv)
     }
-
-    // column checks
-    let mut in_nodes: Vec<usize> = Vec::new();
-    let mut out_nodes: Vec<usize> = Vec::new();
-    for x in 0..map.width {
-        let mut in_loop = false;
-        for y in 0..map.height {
-            let tile = map.get_index(x, y).unwrap();
-            match loop_nodes.get(&tile) {
-                Some(_) => {
-                    in_loop = !in_loop;
-                }
-                None if in_loop && horizontal_checks.contains(&tile)  => {
-                    in_nodes.push(tile);
-                }
-                _ => {
-                    out_nodes.push(tile);
-                }
-            };
-        }
-    }
-
-    print_map(&map, &in_nodes, &out_nodes);
-
-
-    in_nodes.len() as i64
 }
 
-fn print_map(map: &Map, in_nodes: &Vec<usize>, out_nodes: &Vec<usize>) {
+fn spin_loop(map: &Map, mut loop_nodes: Vec<usize>) -> Vec<usize> {
+    let mut need_reverse = false;
+    for (i, index) in loop_nodes.iter().enumerate() {
+        let current_pos = map.get_pos(*index).unwrap();
+        let next_pos = map.get_pos(
+            *loop_nodes.get(i+1).unwrap_or(&loop_nodes[0])
+        ).unwrap();
+        let rhs = get_right_hand_vec(current_pos, next_pos);
+        let mut dt = 1;
+        loop {
+            let side_node = (current_pos.0 + (rhs.0 * dt), current_pos.1 + (rhs.1 * dt));
+            let side_node_index = map.get_index(side_node.0, side_node.1);
+            match side_node_index {
+                None => {
+                    need_reverse = true;
+                    break;
+                }
+                Some(index) if loop_nodes.contains(&index) => {
+                    break;
+                }
+                _ => {
+                    dt += 1;
+                }
+            };
+        }
+        if need_reverse {
+            break;
+        }
+    }
+
+    if need_reverse {
+        loop_nodes.reverse();
+    }
+    loop_nodes
+}
+
+
+pub fn part2_inner(content: &str) -> i64 {
+    let map = parse(content);
+    let loop_nodes = spin_loop(&map, build_loop(&map));
+    let mut inner_nodes = Vec::with_capacity(loop_nodes.len());
+    for (i, index) in loop_nodes.iter().enumerate() {
+        let current_pos = map.get_pos(*index).unwrap();
+        let next_pos = map.get_pos(
+            *loop_nodes.get(i+1).unwrap_or(&loop_nodes[0])
+        ).unwrap();
+        let rhs = get_right_hand_vec(current_pos, next_pos);
+        let side_node = (current_pos.0 + rhs.0, current_pos.1 + rhs.1);
+        let side_node_index = map.get_index(side_node.0, side_node.1);
+        if let Some(side_node_index) = side_node_index {
+            if !loop_nodes.contains(&side_node_index) && !inner_nodes.contains(&side_node_index) {
+                inner_nodes.push(side_node_index);
+            }
+        }
+
+    }
+
+
+    for i in 0..inner_nodes.len() {
+        let inner_node = inner_nodes[i];
+        let (x, y) = map.get_pos(inner_node).unwrap();
+
+        if let Some(left) = map.get_index(x - 1, y) {
+            if !loop_nodes.contains(&left) && !inner_nodes.contains(&left) {
+                inner_nodes.push(left);
+            }
+        }
+        if let Some(right) = map.get_index(x + 1, y) {
+            if !loop_nodes.contains(&right) && !inner_nodes.contains(&right) {
+                inner_nodes.push(right);
+            }
+        }
+        if let Some(top) = map.get_index(x, y-1) {
+            if !loop_nodes.contains(&top) && !inner_nodes.contains(&top) {
+                inner_nodes.push(top);
+            }
+        }
+        if let Some(bottom) = map.get_index(x, y+1) {
+            if !loop_nodes.contains(&bottom) && !inner_nodes.contains(&bottom) {
+                inner_nodes.push(bottom);
+            }
+        }
+
+    }
+
+    // print_map(&map, &inner_nodes, &Vec::new(), &loop_nodes);
+
+    inner_nodes.len() as i64
+}
+
+fn _print_map(map: &Map, in_nodes: &Vec<usize>, out_nodes: &Vec<usize>, loop_nodes: &Vec<usize>) {
     for y in 0..map.height {
         for x in 0..map.width {
             let index = map.get_index(x, y).unwrap();
             let tile = map.get_tile(index);
-            let s = match tile {
-                _ if in_nodes.contains(&index) => "I",
-                _ if out_nodes.contains(&index) => "O",
-                Tile::Ground => ".",
-                Tile::Start => "S",
-                Tile::NorthSouth => "|",
-                Tile::WestEast => "-",
-                Tile::NorthEast => "L",
-                Tile::NorthWest => "J",
-                Tile::SouthWest => "7",
-                Tile::SouthEast => "F",
-            };
-            print!("{}", s);
+            let loop_index = loop_nodes.iter().position(|e| *e == index);
+            match loop_index {
+                None => {
+                    let s = match tile {
+                        _ if in_nodes.contains(&index) => "I",
+                        _ if out_nodes.contains(&index) => "O",
+                        Tile::Ground => ".",
+                        Tile::Start => "S",
+                        Tile::NorthSouth => "|",
+                        Tile::WestEast => "-",
+                        Tile::NorthEast => "L",
+                        Tile::NorthWest => "J",
+                        Tile::SouthWest => "7",
+                        Tile::SouthEast => "F",
+                    };
+                    print!("{} ", s);
+                }
+                Some(i) => {
+                    print!("{} ", i);
+                }
+            }
+
         }
         println!();
     }
 }
 
+// BAD ANSWER - TOO LOW: 286
 pub fn part2(content: String) {
     println!("result: {}", part2_inner(&content));
 }
