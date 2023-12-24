@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 #[derive(PartialEq, Debug)]
 enum Tile {
     Ground,
@@ -210,7 +212,6 @@ fn parse(content: &str) -> Map {
     Map { tiles, width, height, start }
 }
 
-// PART 1 --------------------------------------
 
 fn is_same_as_last(last: &Option<usize>, val: usize) -> bool {
     match last {
@@ -218,18 +219,16 @@ fn is_same_as_last(last: &Option<usize>, val: usize) -> bool {
         Some(x) => *x == val
     }
 }
-fn part1_inner(content: &str) -> i64 {
-    let map = parse(content);
 
-    // count loop links
+fn build_loop(map: &Map) -> Vec<usize> {
     let mut last = None;
     let mut current = map.start;
-    let mut count = 0;
+    let mut nodes = Vec::new();
     loop {
-        count += 1;
-        if count > 1 && current == map.start {
+        if nodes.len() >= 1 && current == map.start {
             break;
         }
+        nodes.push(current);
 
         let (x, y) = map.get_pos(current).unwrap();
         // println!("({}, {})", x, y);
@@ -268,7 +267,15 @@ fn part1_inner(content: &str) -> i64 {
         panic!("main dead loop");
     }
 
-    count / 2
+    nodes
+}
+
+// PART 1 --------------------------------------
+
+fn part1_inner(content: &str) -> i64 {
+    let map = parse(content);
+    let nodes = build_loop(&map);
+    nodes.len() as i64 / 2
 }
 
 pub fn part1(content: String) {
@@ -278,7 +285,76 @@ pub fn part1(content: String) {
 // PART 2 --------------------------------------
 
 pub fn part2_inner(content: &str) -> i64 {
-    0
+    let map = parse(content);
+    let loop_nodes: HashSet<usize> = HashSet::from_iter(build_loop(&map).into_iter());
+
+    // row checks
+    let mut horizontal_checks: HashSet<usize> = HashSet::new();
+    for y in 0..map.height {
+        let mut in_loop = false;
+        for x in 0..map.width {
+            let tile = map.get_index(x, y).unwrap();
+            match loop_nodes.get(&tile) {
+                Some(_) => {
+                    in_loop = !in_loop;
+                }
+                None if in_loop  => {
+                    horizontal_checks.insert(tile);
+                }
+                _ => {}
+            };
+
+        }
+    }
+
+    // column checks
+    let mut in_nodes: Vec<usize> = Vec::new();
+    let mut out_nodes: Vec<usize> = Vec::new();
+    for x in 0..map.width {
+        let mut in_loop = false;
+        for y in 0..map.height {
+            let tile = map.get_index(x, y).unwrap();
+            match loop_nodes.get(&tile) {
+                Some(_) => {
+                    in_loop = !in_loop;
+                }
+                None if in_loop && horizontal_checks.contains(&tile)  => {
+                    in_nodes.push(tile);
+                }
+                _ => {
+                    out_nodes.push(tile);
+                }
+            };
+        }
+    }
+
+    print_map(&map, &in_nodes, &out_nodes);
+
+
+    in_nodes.len() as i64
+}
+
+fn print_map(map: &Map, in_nodes: &Vec<usize>, out_nodes: &Vec<usize>) {
+    for y in 0..map.height {
+        for x in 0..map.width {
+            let index = map.get_index(x, y).unwrap();
+            let tile = map.get_tile(index);
+            let s = match tile {
+                _ if in_nodes.contains(&index) => "I",
+                _ if out_nodes.contains(&index) => "O",
+                Tile::Ground => ".",
+                Tile::Start => "S",
+                Tile::NorthSouth => "|",
+                Tile::WestEast => "-",
+                Tile::NorthEast => "L",
+                Tile::NorthWest => "J",
+                Tile::SouthWest => "7",
+                Tile::SouthEast => "F",
+            };
+            print!("{}", s);
+        }
+        println!();
+    }
 }
 
 pub fn part2(content: String) {
@@ -329,6 +405,58 @@ LJ...
     #[test]
     fn part1_sample3() {
         assert_eq!(8, part1_inner(SAMPLE_3));
+    }
+
+    static SAMPLE_4: &'static str = r#"
+...........
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+...........
+"#;
+
+    static SAMPLE_5: &'static str = r#"
+.F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...
+"#;
+
+    static SAMPLE_6: &'static str = r#"
+FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L
+"#;
+    #[test]
+    fn part2_sample4() {
+        assert_eq!(4, part2_inner(SAMPLE_4));
+    }
+
+    #[test]
+    fn part2_sample5() {
+        assert_eq!(8, part2_inner(SAMPLE_5));
+    }
+
+    #[test]
+    fn part2_sample6() {
+        assert_eq!(10, part2_inner(SAMPLE_6));
     }
 
 }
